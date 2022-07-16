@@ -10,7 +10,7 @@ public class AuthenticationServerProxy {
 
 	public String getSecret(String username) {
 
-		return restTemplate.getForObject("http://localhost:9999/getSecret/{username}", String.class, username);
+		return restTemplate.getForObject("http://localhost:9999/secret/{username}", String.class, username);
 	}
 
 }

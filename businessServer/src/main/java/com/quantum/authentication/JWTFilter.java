@@ -22,6 +22,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.quantum.exception.InvalidTokenException;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -65,35 +67,57 @@ public class JWTFilter extends OncePerRequestFilter {
 		// authentication done.
 		filterChain.doFilter(request, response);
 	}
+//
+//	private String getUsernameFromJwt(String jwt) {
+//		int i = jwt.lastIndexOf('.');
+//		String jwtWithoutSignature = jwt.substring(0, i + 1);
+//
+//		// @formatter:off
+//		Claims untrusted = Jwts.parserBuilder()
+//				.build()
+//				.parseClaimsJwt(jwtWithoutSignature)
+//				.getBody();
+//		// @formatter:on
+//
+//		String username = untrusted.get("username").toString();
+//
+//		return username;
+//	}
 
-	private String getUsernameFromJwt(String jwt) {
+	// get username from jwt token.
+	private static String getUsernameFromJwt(String jwt) {
 		int i = jwt.lastIndexOf('.');
 		String jwtWithoutSignature = jwt.substring(0, i + 1);
-
-		// @formatter:off
-		Claims untrusted = Jwts.parserBuilder()
-				.build()
-				.parseClaimsJwt(jwtWithoutSignature)
-				.getBody();
-		// @formatter:on
-
-		String username = untrusted.get("username").toString();
-
-		return username;
+		Claims untrusted = null;
+		try {
+			// @formatter:off
+            untrusted = Jwts.parserBuilder()
+                    .build()
+                    .parseClaimsJwt(jwtWithoutSignature)
+                    .getBody();
+            // @formatter:on
+		} catch (Exception e) {
+			return "invalid";
+		}
+		return untrusted.get("username").toString();
 	}
 
 	// validating token signature and getting its payload after validating.
 	@SuppressWarnings({ "unchecked" })
 	private List<String> validateAndGetStringAuthorities(String secret, String jwt) {
-		SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-
+		Claims claims = null;
+		try {
+			SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 		// @formatter:off
-		Claims claims = Jwts.parserBuilder()
+		claims = Jwts.parserBuilder()
 						.setSigningKey(key)
 						.build()
 						.parseClaimsJws(jwt)
 						.getBody();
 		// @formatter:on
+		} catch (Exception e) {
+			throw new InvalidTokenException("invalid token");
+		}
 
 		return (List<String>) claims.get("authorities");
 	}
